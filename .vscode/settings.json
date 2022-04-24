@@ -1,0 +1,15 @@
+{
+    // ~/Library/Application Support/Code/User/settings.json を上書きするファイル
+    // c_cpp_properties.json にて上書きされる
+    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.cStandard": "c17",
+    "editor.fontSize": 10,
+    "editor.renderWhitespace": "all",
+    "editor.wordWrap": "on",
+    "editor.formatOnSave": true,
+    "files.exclude": {
+        "**/*.dSYM": true
+    },
+    "workbench.editor.enablePreview": false,
+    "workbench.editor.enablePreviewFromQuickOpen": false
+}
