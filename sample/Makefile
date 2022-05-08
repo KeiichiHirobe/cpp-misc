@@ -46,7 +46,7 @@ release: all
 vervose: CXXFLAGS += -v
 vervose: all
  
-clean:
+clean: clean_test
 	-@rm -rvf $(OBJ_DIR)/*
 	-@rm -rvf $(APP_DIR)/*
 
@@ -58,22 +58,13 @@ info:
 	@echo "[*] Dependencies:    ${DEPENDENCIES}"
 
 
-# TEST
-# https://gist.github.com/mihaitodor/bfb8e7ad908489fdf3ceb496573f306a
 GTEST_DIR_BASE := ./gtest
-# Points to the root of Google Test, relative to where this file is.
 GTEST_VER := 1.11.0
 GTEST_DIR := $(GTEST_DIR_BASE)/googletest-release-$(GTEST_VER)/googletest
-TESTS      :=                      \
-   $(wildcard test/module1/*.cpp) \
-   $(wildcard test/module2/*.cpp) \
-   $(wildcard test/*.cpp)         \
-
-# build結果
 BUILD_TEST_DIR  := $(BUILD)/tests
-BUILD_GTEST_DIR  := $(BUILD_TEST_DIR)/gtest
+BUILD_GTEST_DIR  := $(BUILD)/gtest
 
-.PHONY: test clean_gtest
+.PHONY: test clean_gtest clean_test
 
 $(BUILD_GTEST_DIR): $(GTEST_DIR)
 	@mkdir -p $(GTEST_DIR_BASE)/googletest-release-$(GTEST_VER)/build
@@ -93,11 +84,39 @@ clean_gtest:
 	-@rm -rvf $(GTEST_DIR_BASE)/*
 	-@rm -rvf $(BUILD_GTEST_DIR)/*
 
-test: test_sample
+clean_test:
+	-@rm -rvf $(BUILD_TEST_DIR)/*
+
+# テストファイル一覧
+TESTS_SRC      :=                 \
+   $(wildcard test/module1/*.cpp) \
+   $(wildcard test/module2/*.cpp) \
+   $(wildcard test/*.cpp)         \
+
+# テストファイルを実行可能にしたもの
+TESTS_BUILD  := $(TESTS_SRC:test/%.cpp=$(BUILD_TEST_DIR)/%)
+
+# mainが含まれている.oファイルはテスト時には省きたいので以下のようにmoduleのみをリンク対象とする
+MODULEOBJ  =                    			 \
+   $(wildcard build/objects/src/module1/*.o) \
+   $(wildcard build/objects/src/module2/*.o) \
+
+TEST_OBJECTS  := $(TESTS_SRC:%.cpp=$(OBJ_DIR)/%.o)
+TEST_DEPENDENCIES := $(TEST_OBJECTS:.o=.d)
+-include $(TEST_DEPENDENCIES)
 
 $(OBJ_DIR)/test/%.o: test/%.cpp $(GTEST_DIR)
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -I$(GTEST_DIR)/include/gtest -c $< -MMD -o $@
 
-test_sample : $(OBJ_DIR)/test/test_sample.o $(BUILD_GTEST_DIR)
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS) -pthread -lgtest_main -lgtest -L $(BUILD_GTEST_DIR)
+$(BUILD_TEST_DIR)/%: $(OBJ_DIR)/test/%.o $(OBJECTS) $(BUILD_GTEST_DIR)
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -o $@ $< $(MODULEOBJ) -pthread -lgtest_main -lgtest -L $(BUILD_GTEST_DIR)
+
+# $(info TESTS_BUILD $(TESTS_BUILD))
+# $(info MODULEOBJ $(MODULEOBJ))
+# $(info TEST_OBJECTS $(TEST_OBJECTS))
+# $(info BUILD_TEST_DIR $(BUILD_TEST_DIR))
+# $(info TEST_DEPENDENCIES $(TEST_DEPENDENCIES))
+
+test: $(TESTS_BUILD)
