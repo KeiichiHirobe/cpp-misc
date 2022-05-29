@@ -18,11 +18,11 @@ struct atomic_recycling_stack
         uintptr_t nonce;
     };
 
-    std::atomic<atomic_item> item;
+    std::atomic<atomic_item> headItem;
 
     void push(any_t *elem)
     {
-        atomic_try_update_unsafe(&item,
+        atomic_try_update_unsafe(&headItem,
                                  [elem](atomic_item *ref_v) -> bool
                                  {
                                      elem->*next = ref_v->head;
@@ -34,7 +34,7 @@ struct atomic_recycling_stack
     any_t *pop()
     {
         any_t *oldhead;
-        atomic_try_update_unsafe(&item,
+        atomic_try_update_unsafe(&headItem,
                                  [&oldhead](atomic_item *ref_v) -> bool
                                  {
                                      oldhead = ref_v->head;
